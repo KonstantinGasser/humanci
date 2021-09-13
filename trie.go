@@ -1,44 +1,58 @@
 package humanci
 
+// ValueFunc describes any function which recevies some data
+// from the current node it gets exectuted on.
+// Example:
+// 		-> RegexNode, matches regex: ValueFunc(matched_regex_value)
+//		-> ValueNode, passed the node's token into the ValueFunc: ValueFunc("foo")
 type ValueFunc func(v interface{}) (string, interface{})
 
+// NodeFunc is a function which recevied the current Node as an argument
+// allowing the caller to perform a veraity of action.
+// Propably only useful for the "last" node to execute the
+// final command, while having access to all the stored data
 type NodeFunc func(Node) error
 
 type Node interface {
-	// Fill creates and adds a Fill-Word node
+	// WithNOP creates and adds a NOPNode
 	// to the command which only exists so that
 	// a sentence is grammarly correct. It has no
-	// functionality
-	NOP(keys ...string) Node
+	// functionality, but to allow clean and correct english/german/world
+	// sentences.
+	WithNOP(keys ...string) Node
 
-	// Value adds a stateful node to the command
-	// in which CmdFunc additional values can be added to
-	// the Node data map
-	Value(fn ValueFunc, keys ...string) Node
+	// WithKeys returns a Node which ValueFunc will be executed when the
+	// Node is reached in the trie. This allows to add custom data to
+	// the overall context of the command.
+	WithKeys(fn ValueFunc, keys ...string) Node
 
-	// Exec adds a node to the cmd which will trigger the mapped
-	// function. Exec should be called on either of the
-	// last nodes or if a node should perform a task in prior to the
-	// actual requested command
-	Exec(fn NodeFunc, keys ...string) Node
-
-	// Regex returns a Node which key is a regex.
+	// WithRegex returns a Node which key is a regex.
 	// The node will allow to match every token which
 	// matches the pattern.
-	// The ValueFunc can be used to add the value with a custom key.
-	Regex(fn ValueFunc, pattern string) Node
+	// The ValueFunc can be used to add the value with a custom key and
+	// will be executed if the Node is reached in the trie.
+	WithRegex(fn ValueFunc, pattern string) Node
 
-	// Int returns a Node which does not specifiys a key.
+	// WithInt returns a Node which does not specifiys a key.
 	// However, an IntNode matches every token which can be parsed as
 	// and int64 and adds the value to the overall data.
-	// The ValueFunc can be used to add the value with a custom key.
-	Int(fn ValueFunc) Node
+	// The ValueFunc can be used to add the value with a custom key and
+	// will be executed if the Node is reached in the trie.
+	WithInt(fn ValueFunc) Node
 
-	// Str returns a Node which does not specifiys a key.
+	// WithStr returns a Node which does not specifiys a key.
 	// However, an StrNode matches EVERY next token and adds
 	// the value to the overall data.
-	// The ValueFunc can be used to add the value with a custom key.
-	Str(fn ValueFunc) Node
+	// The ValueFunc can be used to add the value with a custom key and
+	// will be executed if the Node is reached in the trie.
+	WithStr(fn ValueFunc) Node
+
+	// WithExec adds a node to the cmd which will trigger the mapped
+	// function. WithExec should be called on either of the
+	// last nodes or if a node should perform a task in prior to the
+	// actual requested command. The NodeFunc gets the full context of
+	// the run CMD with all the stored data
+	WithExec(fn NodeFunc, keys ...string) Node
 
 	// Values returns the current state of the Cmd's data
 	Values() map[string]interface{}
