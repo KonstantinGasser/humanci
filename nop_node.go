@@ -21,8 +21,9 @@ func (node *NOPNode) WithNOP(keys ...string) Node {
 
 	for n, edges := range node.nexts {
 		for _, edge := range edges {
-			for _, key := range keys {
+			for index, key := range keys {
 				if edge == key {
+					node.nexts[n] = append(node.nexts[n], keys[index+1:]...)
 					return n
 				}
 			}
