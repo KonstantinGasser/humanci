@@ -1,5 +1,0 @@
-			switch meta.LastToken() {
-			case "google":
-				meta.Value("kind", 0)
-			case "simple.go":
-				meta.Value("kind", 1)
