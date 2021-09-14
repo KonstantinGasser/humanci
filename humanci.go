@@ -73,60 +73,50 @@ type Node interface {
 	// Has checks if a node has a given set of keys as identifier
 	Has(key ...string) bool
 
-	// Print appends the treeprint.Tree with the node information
+	// Print appends the treeprint.Tree with the node's keys
+	// in the form of [key | key]. If the node has nexts Print
+	// will be called on each next node.
 	Print(tree treeprint.Tree)
 }
 
-func Hello() {
-	fmt.Print("hello")
-}
-
 type cli struct {
-	nexts []Node
+	nexts map[string]Node
 }
 type CLI interface {
+	// Help prints all possible commands as given by the trie
+	// as tree to the standrard output
 	Help()
 
-	Build(roots ...string) Node
-	// WithNOP creates and adds a NOPNode
-	// to the command which only exists so that
-	// a sentence is grammarly correct. It has no
-	// functionality, but to allow clean and correct english/german/world
-	// sentences.
-	// WithNOP(keys ...string) Node
-
-	// WithKeys returns a Node which ValueFunc will be executed when the
-	// Node is reached in the trie. This allows to add custom data to
-	// the overall context of the command.
-	// WithKeys(fn ValueFunc, keys ...string) Node
-
-	// WithRegex returns a Node which key is a regex.
-	// The node will allow to match every token which
-	// matches the pattern.
-	// The ValueFunc can be used to add the value with a custom key and
-	// will be executed if the Node is reached in the trie.
-	// WithRegex(fn ValueFunc, pattern string) Node
-
-	// WithInt returns a Node which does not specifiys a key.
-	// However, an IntNode matches every token which can be parsed as
-	// and int64 and adds the value to the overall data.
-	// The ValueFunc can be used to add the value with a custom key and
-	// will be executed if the Node is reached in the trie.
-	// WithInt(fn ValueFunc) Node
-
-	// WithStr returns a Node which does not specifiys a key.
-	// However, an StrNode matches EVERY next token and adds
-	// the value to the overall data.
-	// The ValueFunc can be used to add the value with a custom key and
-	// will be executed if the Node is reached in the trie.
-	// WithStr(fn ValueFunc) Node
+	// RootNOP creates and NOPNode as one root node for the
+	// cli
+	RootNOP(roots ...string) Node
 }
 
 // New create new CLI
 func New() CLI {
 	return &cli{
-		nexts: make([]Node, 0),
+		nexts: make(map[string]Node),
 	}
+}
+
+func (ci *cli) RootNOP(roots ...string) Node {
+	// if node is already present as root node
+	// return node
+	var next Node
+	for _, root := range roots {
+		fmt.Printf("cli.add: [%v] | %v\n", roots, ci.nexts)
+		if cached, ok := ci.nexts[root]; ok {
+			next = cached
+			break
+		}
+	}
+	if next == nil {
+		next = newNOPNode(roots...)
+	}
+	for _, root := range roots {
+		ci.nexts[root] = next
+	}
+	return next
 }
 
 func (ci *cli) Help() {
@@ -138,20 +128,7 @@ func (ci *cli) Help() {
 	for _, node := range ci.nexts {
 		node.Print(tree)
 	}
-}
-
-func (ci *cli) Build(roots ...string) Node {
-	// if node is already present as root node
-	// return node
-	for _, next := range ci.nexts {
-		if next.Has(roots...) {
-			return next
-		}
-	}
-
-	rootNode := newNOPNode(roots...)
-	ci.nexts = append(ci.nexts, rootNode)
-	return rootNode
+	fmt.Println(tree.String())
 }
 
 /*
