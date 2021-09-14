@@ -9,22 +9,22 @@ func main() {
 	// 	WithNOP("is").
 	// 	WithNOP("it")
 
-	cli.RootNOP("what").
-		WithNOP("date").
+	cli.RootNOP("what", "which").
+		WithNOP("date", "time").
 		WithNOP("is").
 		WithNOP("it")
 
 	cli.RootNOP("what").
-		WithNOP("date")
-	// 	WithNOP("and").
-	// 	WithNOP("year").
-	// 	WithNOP("is").
-	// 	WithNOP("it")
+		WithNOP("date").
+		WithNOP("and").
+		WithNOP("year").
+		WithNOP("is").
+		WithNOP("it")
 
-	// cli.RootNOP("tell").
-	// 	WithNOP("me").
-	// 	WithNOP("the").
-	// 	WithNOP("time")
+	cli.RootNOP("tell").
+		WithNOP("me").
+		WithNOP("the").
+		WithNOP("time")
 
 	// cli.RootNOP("tell").
 	// 	WithNOP("me").
@@ -33,3 +33,23 @@ func main() {
 
 	cli.Help()
 }
+
+/*
+{
+	keys: [what]
+	subs: {
+		"time": -> Node_1,
+		"date": -> Node_1,
+		"car":  -> Node_2
+	}
+}
+
+=> what time|date -> #1 command
+=> what car	      -> #2 command
+
+add to [what] time,date
+=> do I have time | date in subs?
+	=> [yes] ->
+
+
+*/

@@ -80,7 +80,7 @@ type Node interface {
 }
 
 type cli struct {
-	nexts map[string]Node
+	nexts map[Node][]string
 }
 type CLI interface {
 	// Help prints all possible commands as given by the trie
@@ -89,44 +89,57 @@ type CLI interface {
 
 	// RootNOP creates and NOPNode as one root node for the
 	// cli
-	RootNOP(roots ...string) Node
+	RootNOP(keys ...string) Node
 }
 
 // New create new CLI
 func New() CLI {
 	return &cli{
-		nexts: make(map[string]Node),
+		nexts: make(map[Node][]string),
 	}
 }
 
-func (ci *cli) RootNOP(roots ...string) Node {
-	// if node is already present as root node
-	// return node
-	var next Node
-	for _, root := range roots {
-		fmt.Printf("cli.add: [%v] | %v\n", roots, ci.nexts)
-		if cached, ok := ci.nexts[root]; ok {
-			next = cached
-			break
+func (ci *cli) RootNOP(keys ...string) Node {
+	// var cached Node
+	// for _, key := range keys {
+	// 	if cached != nil {
+	// 		ci.edges[key] = cached
+	// 	}
+	// 	if n, ok := ci.edges[key]; ok {
+	// 		cached = n
+	// 	}
+	// }
+	// if cached == nil {
+	// 	cached = newNOPNode()
+	// 	for _, key := range keys {
+	// 		ci.edges[key] = cached
+	// 	}
+	// }
+
+	// Node_1: ["what"]
+	// return cached
+	for n, edges := range ci.nexts {
+		for _, edge := range edges {
+			for _, key := range keys {
+				if edge == key {
+					return n
+				}
+			}
 		}
 	}
-	if next == nil {
-		next = newNOPNode(roots...)
-	}
-	for _, root := range roots {
-		ci.nexts[root] = next
-	}
-	return next
+	node := newNOPNode()
+	ci.nexts[node] = keys
+	return node
 }
 
 func (ci *cli) Help() {
-	if len(ci.nexts) == 0 {
-		fmt.Println("empty Grammar-Trie...")
-	}
-	tree := treeprint.NewWithRoot("*")
 
-	for _, node := range ci.nexts {
-		node.Print(tree)
+	tree := treeprint.NewWithRoot("*")
+	// fmt.Printf("[print]-[%v]\n", ci.edges)
+	// key := keyString(ci.nexts)
+	for node, edges := range ci.nexts {
+		branch := tree.AddBranch(SliceToString(edges))
+		node.Print(branch)
 	}
 	fmt.Println(tree.String())
 }

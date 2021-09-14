@@ -1,81 +1,60 @@
 package humanci
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/xlab/treeprint"
 )
 
 type NOPNode struct {
-	keys  map[string]struct{}
-	meta  map[string]interface{}
-	nexts map[string]Node
+	nexts map[Node][]string
 }
 
-func newNOPNode(keys ...string) *NOPNode {
+func newNOPNode() *NOPNode {
 	node := &NOPNode{
-		keys:  make(map[string]struct{}),
-		meta:  make(map[string]interface{}),
-		nexts: make(map[string]Node),
-	}
-	for _, key := range keys {
-		node.keys[key] = struct{}{}
+		nexts: make(map[Node][]string),
 	}
 	return node
 }
 
 func (node *NOPNode) WithNOP(keys ...string) Node {
 
-	var nextNode Node
-	for _, key := range keys {
-
-		nextNode.keys[key] = struct{}{}
-	}
-	if nextNode == nil {
-		nextNode = &NOPNode{
-			keys:  make(map[string]struct{}),
-			meta:  make(map[string]interface{}),
-			nexts: make([]Node, 0),
+	for n, edges := range node.nexts {
+		for _, edge := range edges {
+			for _, key := range keys {
+				if edge == key {
+					return n
+				}
+			}
 		}
 	}
-	node.nexts = append(node.nexts, nextNode)
-	// fmt.Printf("[%v] with %v -> %v\n", &node, node.keys, node.nexts)
-	return nextNode
+	n := newNOPNode()
+	node.nexts[n] = keys
+	return n
 }
 
 func (node *NOPNode) Print(tree treeprint.Tree) {
-	nodeKey := strings.Builder{}
-	nodeKey.WriteString("[")
-	keys := []string{}
-	for key := range node.keys {
-		keys = append(keys, key)
-	}
-	nodeKey.WriteString(strings.Join(keys, " | "))
-	nodeKey.WriteString("]")
-
-	branch := tree.AddBranch(nodeKey.String())
-	fmt.Printf("%s -> %v\n", nodeKey.String(), node.nexts)
-	for _, node := range node.nexts {
+	for node, edges := range node.nexts {
+		branch := tree.AddBranch(SliceToString(edges))
 		node.Print(branch)
 	}
 }
 
 func (node *NOPNode) Has(keys ...string) bool {
-	for _, key := range keys {
-		if _, ok := node.meta[key]; ok {
-			return true
-		}
-	}
+	// for _, key := range keys {
+	// 	if _, ok := node.meta[key]; ok {
+	// 		return true
+	// 	}
+	// }
 	return false
 }
 
 func (node *NOPNode) Values() map[string]interface{} {
-	return node.meta
+	return nil
 }
 
 func (node *NOPNode) Nexts() []Node {
-	return node.nexts
+	return nil
 }
 
 // Func on NOPNode does nothing since NOPNodes
@@ -102,4 +81,28 @@ func (node *NOPNode) WithStr(fn ValueFunc) Node {
 
 func (node *NOPNode) WithExec(fn NodeFunc, keys ...string) Node {
 	panic("not implemented")
+}
+
+func keyString(edges map[string]Node) string {
+	nodeKey := strings.Builder{}
+	nodeKey.WriteString("[")
+	keys := []string{}
+	for key := range edges {
+		keys = append(keys, key)
+	}
+	nodeKey.WriteString(strings.Join(keys, " | "))
+	nodeKey.WriteString("]")
+	return nodeKey.String()
+}
+
+func SliceToString(edges []string) string {
+	nodeKey := strings.Builder{}
+	nodeKey.WriteString("[")
+	keys := []string{}
+	for _, key := range edges {
+		keys = append(keys, key)
+	}
+	nodeKey.WriteString(strings.Join(keys, " | "))
+	nodeKey.WriteString("]")
+	return nodeKey.String()
 }
