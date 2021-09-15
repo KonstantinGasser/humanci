@@ -3,6 +3,7 @@ package humanci
 import (
 	"fmt"
 	"os"
+	"sync"
 
 	"github.com/xlab/treeprint"
 )
@@ -115,11 +116,20 @@ type CLI interface {
 	Execute() error
 }
 
+var (
+	once sync.Once
+	ci   CLI
+)
+
 // New create new CLI
 func New() CLI {
-	return &cli{
-		nexts: make(map[Node][]string),
-	}
+
+	once.Do(func() {
+		ci = &cli{
+			nexts: make(map[Node][]string),
+		}
+	})
+	return ci
 }
 
 func (ci *cli) RootNOP(keys ...string) Node {

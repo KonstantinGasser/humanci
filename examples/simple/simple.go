@@ -79,24 +79,6 @@ func main() {
 			fmt.Println("it is: ", time.Now().Format("15:04:00"))
 			return nil
 		}, "time")
-	// cli.RootNOP("what").
-	// 	WithNOP("date").
-	// 	WithNOP("and").
-	// 	WithNOP("year").
-	// 	WithNOP("is").
-	// 	WithNOP("it")
-
-	// cli.RootNOP("tell").
-	// 	WithNOP("me").
-	// 	WithNOP("the").
-	// 	WithNOP("date", "lol", "date")
-
-	// cli.RootNOP("tell").
-	// 	WithNOP("me").
-	// 	WithNOP("the").
-	// 	WithNOP("date", "time")
-
-	// cli.Help()
 
 	if err := cli.Execute(); err != nil {
 		log.Fatal(err)
