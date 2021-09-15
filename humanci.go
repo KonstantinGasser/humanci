@@ -2,6 +2,7 @@ package humanci
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/xlab/treeprint"
 )
@@ -11,13 +12,31 @@ import (
 // Example:
 // 		-> RegexNode, matches regex: ValueFunc(matched_regex_value)
 //		-> ValueNode, passed the node's token into the ValueFunc: ValueFunc("foo")
-type ValueFunc func(v interface{}) (string, interface{})
+type ValueFunc func(meta MetaData) error // (string, interface{})
 
 // NodeFunc is a function which recevied the current Node as an argument
 // allowing the caller to perform a veraity of action.
 // Propably only useful for the "last" node to execute the
 // final command, while having access to all the stored data
 type NodeFunc func(Node) error
+
+type MetaData map[string]interface{}
+
+func (meta MetaData) LastToken() string {
+	token, ok := meta["token"].([]interface{})
+	if !ok {
+		return ""
+	}
+	return token[len(token)-1].(string)
+}
+
+func (meta MetaData) Value(k string, v interface{}) {
+	meta[k] = v
+}
+
+func (meta MetaData) Return(k string) interface{} {
+	return meta[k]
+}
 
 type Node interface {
 	// WithNOP creates and adds a NOPNode
@@ -37,7 +56,7 @@ type Node interface {
 	// matches the pattern.
 	// The ValueFunc can be used to add the value with a custom key and
 	// will be executed if the Node is reached in the trie.
-	WithRegex(fn ValueFunc, pattern string) Node
+	WithRegex(fn func(meta MetaData) error, patterns ...string) Node
 
 	// WithInt returns a Node which does not specifiys a key.
 	// However, an IntNode matches every token which can be parsed as
@@ -62,21 +81,24 @@ type Node interface {
 	// Values returns the current state of the Cmd's data
 	Values() map[string]interface{}
 
+	AddToken(v string)
+	Token() []string
+	Ctx() MetaData
 	// Nexts returns all nodes which can be reached from a node
-	Nexts() []Node
+	// and its edges over which the node can be reached
+	Nexts() map[Node][]string
 
 	// Func executes the mapped ValueFunc or NodeFunc on a node
 	// NOPNodes don't have any function, a call to NOPNode.Func() will
 	// to nothing
-	Func() error
-
-	// Has checks if a node has a given set of keys as identifier
-	Has(key ...string) bool
+	Func(v interface{}, token string) error
 
 	// Print appends the treeprint.Tree with the node's keys
 	// in the form of [key | key]. If the node has nexts Print
 	// will be called on each next node.
 	Print(tree treeprint.Tree)
+
+	Exec(cmd []string) error
 }
 
 type cli struct {
@@ -90,6 +112,7 @@ type CLI interface {
 	// RootNOP creates and NOPNode as one root node for the
 	// cli
 	RootNOP(keys ...string) Node
+	Execute() error
 }
 
 // New create new CLI
@@ -100,24 +123,10 @@ func New() CLI {
 }
 
 func (ci *cli) RootNOP(keys ...string) Node {
-	// var cached Node
-	// for _, key := range keys {
-	// 	if cached != nil {
-	// 		ci.edges[key] = cached
-	// 	}
-	// 	if n, ok := ci.edges[key]; ok {
-	// 		cached = n
-	// 	}
-	// }
-	// if cached == nil {
-	// 	cached = newNOPNode()
-	// 	for _, key := range keys {
-	// 		ci.edges[key] = cached
-	// 	}
-	// }
+	return ci.addRoot(NewNOPNode, keys...)
+}
 
-	// Node_1: ["what"]
-	// return cached
+func (ci *cli) addRoot(newNodeFn func(meta MetaData) Node, keys ...string) Node {
 	for n, edges := range ci.nexts {
 		for _, edge := range edges {
 			for _, key := range keys {
@@ -127,16 +136,33 @@ func (ci *cli) RootNOP(keys ...string) Node {
 			}
 		}
 	}
-	node := newNOPNode()
+	node := newNodeFn(
+		MetaData(map[string]interface{}{}),
+	)
 	ci.nexts[node] = keys
 	return node
 }
 
-func (ci *cli) Help() {
+func (ci *cli) Execute() error {
+	cmd := os.Args[1:] // tokenizeInput(os.Args[1:])
 
+	if len(cmd) == 2 && cmd[0] == "help" && cmd[1] == "me" {
+		ci.Help()
+		return nil
+	}
+	for node, edges := range ci.nexts {
+		for _, edge := range edges {
+			if edge == cmd[0] {
+				node.AddToken(cmd[0])
+				return node.Exec(cmd[1:])
+			}
+		}
+	}
+	return nil
+}
+
+func (ci *cli) Help() {
 	tree := treeprint.NewWithRoot("*")
-	// fmt.Printf("[print]-[%v]\n", ci.edges)
-	// key := keyString(ci.nexts)
 	for node, edges := range ci.nexts {
 		branch := tree.AddBranch(SliceToString(edges))
 		node.Print(branch)
@@ -152,8 +178,6 @@ Each type eventually will be moved to its own file + tests :)
 type ValueNode struct{}
 
 type ExecNode struct{}
-
-type RegexNode struct{}
 
 type IntNode struct{}
 
